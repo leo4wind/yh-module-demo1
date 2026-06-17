@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: clinical-trial-ddd-demo
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: datasource
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.clinicaltrial.ddd: DEBUG

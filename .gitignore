@@ -1,0 +1,42 @@
+# Maven
+target/
+**/target/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Local tooling
+.agents/
+.claude/
+.playwright-cli/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Java / logs
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.mv.db
+*.trace.db
+*.h2.db
+
+# Test / build caches
+coverage/
+.cache/

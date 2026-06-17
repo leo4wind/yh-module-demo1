@@ -49,6 +49,13 @@ public class AnalysisProjectRepositoryImpl implements AnalysisProjectRepository 
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public AnalysisProject getById(AnalysisProjectId id) {
+        return findById(id)
+                .orElseThrow(() -> new AggregateNotFoundException("AnalysisProject", id));
+    }
+
+    @Override
     @Transactional
     public AnalysisProject save(AnalysisProject project) {
         AnalysisProjectJpaEntity entity = toJpa(project);

@@ -47,11 +47,20 @@
           <el-table :data="stages" stripe size="small">
             <el-table-column prop="id" label="ID" width="60" />
             <el-table-column prop="name" label="阶段名称" min-width="140" />
-            <el-table-column prop="orderNum" label="序号" width="70" />
-            <el-table-column prop="type" label="阶段类型" width="120">
-              <template #default="{ row }">{{ stageTypeLabel[row.type] || row.type }}</template>
+            <el-table-column prop="repeatType" label="重复类型" width="120">
+              <template #default="{ row }">{{ repeatTypeLabel[row.repeatType] || row.repeatType }}</template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
+            <el-table-column label="自动添加" width="90">
+              <template #default="{ row }">
+                <el-tag :type="row.autoAdd ? 'success' : 'info'" size="small">{{ row.autoAdd ? '是' : '否' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="基线" width="120">
+              <template #default="{ row }">{{ formatBaseline(row) }}</template>
+            </el-table-column>
+            <el-table-column label="窗口" width="120">
+              <template #default="{ row }">{{ formatWindow(row) }}</template>
+            </el-table-column>
           </el-table>
           <div v-if="stages.length === 0" style="text-align:center;color:#999;padding:24px 0">暂无阶段配置</div>
         </el-tab-pane>
@@ -68,16 +77,14 @@
               <div class="timeline-dot" :class="{ first: idx === 0, last: idx === visitPlans.length - 1 }" />
               <div class="timeline-card">
                 <div class="timeline-header">
-                  <strong>{{ vp.sourceName || vp.source }}</strong>
-                  <el-tag size="small" v-if="vp.sourceStageName" style="margin-left:8px">{{ vp.sourceStageName }}</el-tag>
+                  <strong>{{ stageName(vp.sourceStageId) }}</strong>
                 </div>
                 <div class="timeline-arrow">→</div>
                 <div class="timeline-header">
-                  <strong>{{ vp.targetName || vp.target }}</strong>
-                  <el-tag size="small" v-if="vp.targetStageName" style="margin-left:8px">{{ vp.targetStageName }}</el-tag>
+                  <strong>{{ stageName(vp.targetStageId) }}</strong>
                 </div>
-                <div v-if="vp.allowDays || vp.dayWindow" class="timeline-meta">
-                  允许间隔: {{ vp.allowDays || vp.dayWindow }} 天
+                <div class="timeline-meta">
+                  {{ formatBaseline(vp) }} / {{ formatWindow(vp) }}
                 </div>
               </div>
             </div>
@@ -92,15 +99,14 @@
           </div>
           <el-table :data="crfBindings" stripe size="small">
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="crfName" label="CRF名称" min-width="160" />
-            <el-table-column prop="stageName" label="关联阶段" width="140" />
-            <el-table-column prop="visitPlanName" label="关联访视" width="140" />
-            <el-table-column prop="category" label="分类" width="100">
-              <template #default="{ row }">{{ crfCategoryLabel[row.category] || row.category }}</template>
+            <el-table-column prop="crfId" label="CRF ID" width="100" />
+            <el-table-column prop="crfVersionId" label="版本ID" width="100" />
+            <el-table-column label="关联阶段" min-width="140">
+              <template #default="{ row }">{{ stageName(row.stageId) }}</template>
             </el-table-column>
-            <el-table-column label="必填" width="70">
+            <el-table-column label="允许录入" width="90">
               <template #default="{ row }">
-                <el-tag :type="row.required ? 'danger' : 'info'" size="small">{{ row.required ? '是' : '否' }}</el-tag>
+                <el-tag :type="row.userInputEnabled ? 'success' : 'info'" size="small">{{ row.userInputEnabled ? '是' : '否' }}</el-tag>
               </template>
             </el-table-column>
           </el-table>
@@ -115,13 +121,11 @@
           </div>
           <el-table :data="personnel" stripe size="small">
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="name" label="姓名" width="120" />
+            <el-table-column prop="userId" label="用户ID" width="120" />
+            <el-table-column prop="siteId" label="中心ID" width="120" />
             <el-table-column prop="role" label="角色" width="120">
               <template #default="{ row }">{{ roleLabel[row.role] || row.role }}</template>
             </el-table-column>
-            <el-table-column prop="phone" label="电话" width="140" />
-            <el-table-column prop="email" label="邮箱" min-width="180" />
-            <el-table-column prop="centerName" label="中心" width="120" />
           </el-table>
           <div v-if="personnel.length === 0" style="text-align:center;color:#999;padding:24px 0">暂无人员配置</div>
         </el-tab-pane>
@@ -134,19 +138,32 @@
         <el-form-item label="阶段名称" required>
           <el-input v-model="stageForm.name" placeholder="如: 筛选期" />
         </el-form-item>
-        <el-form-item label="阶段类型" required>
-          <el-select v-model="stageForm.type" style="width:100%">
-            <el-option label="筛选" value="SCREENING" />
-            <el-option label="治疗" value="TREATMENT" />
-            <el-option label="随访" value="FOLLOWUP" />
-            <el-option label="结束" value="END" />
+        <el-form-item label="重复类型" required>
+          <el-select v-model="stageForm.repeatType" style="width:100%">
+            <el-option label="不重复" value="NONE" />
+            <el-option label="按天" value="DAY" />
+            <el-option label="按周" value="WEEK" />
+            <el-option label="按月" value="MONTH" />
           </el-select>
         </el-form-item>
-        <el-form-item label="序号">
-          <el-input-number v-model="stageForm.orderNum" :min="1" style="width:100%" />
+        <el-form-item label="自动添加">
+          <el-switch v-model="stageForm.autoAdd" />
         </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="stageForm.description" type="textarea" :rows="3" />
+        <el-form-item label="基线间隔">
+          <el-input-number v-model="stageForm.baselineDays" :min="0" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="基线单位">
+          <el-select v-model="stageForm.baselineDirection" style="width:100%">
+            <el-option label="天" value="DAY" />
+            <el-option label="周" value="WEEK" />
+            <el-option label="月" value="MONTH" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="提前天数">
+          <el-input-number v-model="stageForm.beforeDays" :min="0" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="延后天数">
+          <el-input-number v-model="stageForm.afterDays" :min="0" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -159,17 +176,33 @@
     <el-dialog v-model="visitDialogVisible" title="添加访视计划" width="480px">
       <el-form :model="visitForm" label-width="100px">
         <el-form-item label="来源阶段" required>
-          <el-select v-model="visitForm.source" style="width:100%">
-            <el-option v-for="s in stages" :key="s.id" :label="s.name" :value="s.name" />
+          <el-select v-model="visitForm.sourceStageId" style="width:100%">
+            <el-option v-for="s in stages" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="目标阶段" required>
-          <el-select v-model="visitForm.target" style="width:100%">
-            <el-option v-for="s in stages" :key="s.id" :label="s.name" :value="s.name" />
+          <el-select v-model="visitForm.targetStageId" style="width:100%">
+            <el-option v-for="s in stages" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="允许间隔(天)">
-          <el-input-number v-model="visitForm.allowDays" :min="0" style="width:100%" />
+        <el-form-item label="计划名称" required>
+          <el-input v-model="visitForm.name" placeholder="如: 筛选到治疗" />
+        </el-form-item>
+        <el-form-item label="基线间隔">
+          <el-input-number v-model="visitForm.baselineDays" :min="0" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="基线单位">
+          <el-select v-model="visitForm.baselineDirection" style="width:100%">
+            <el-option label="天" value="DAY" />
+            <el-option label="周" value="WEEK" />
+            <el-option label="月" value="MONTH" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="提前天数">
+          <el-input-number v-model="visitForm.beforeDays" :min="0" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="延后天数">
+          <el-input-number v-model="visitForm.afterDays" :min="0" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -181,29 +214,19 @@
     <!-- Add CRF Binding Dialog -->
     <el-dialog v-model="crfDialogVisible" title="添加CRF绑定" width="480px">
       <el-form :model="crfForm" label-width="100px">
-        <el-form-item label="CRF名称" required>
-          <el-input v-model="crfForm.crfName" placeholder="如: 知情同意书" />
+        <el-form-item label="CRF ID" required>
+          <el-input-number v-model="crfForm.crfId" :min="1" style="width:100%" />
         </el-form-item>
         <el-form-item label="关联阶段" required>
-          <el-select v-model="crfForm.stageName" style="width:100%">
-            <el-option v-for="s in stages" :key="s.id" :label="s.name" :value="s.name" />
+          <el-select v-model="crfForm.stageId" style="width:100%">
+            <el-option v-for="s in stages" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="关联访视">
-          <el-select v-model="crfForm.visitPlanName" style="width:100%" clearable>
-            <el-option v-for="vp in visitPlans" :key="vp.id" :label="(vp.sourceName||vp.source) + '→' + (vp.targetName||vp.target)" :value="vp.sourceName||vp.source" />
-          </el-select>
+        <el-form-item label="版本ID">
+          <el-input-number v-model="crfForm.crfVersionId" :min="1" style="width:100%" />
         </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="crfForm.category" style="width:100%">
-            <el-option label="一般信息" value="GENERAL" />
-            <el-option label="疗效指标" value="EFFICACY" />
-            <el-option label="安全性" value="SAFETY" />
-            <el-option label="实验室" value="LAB" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="必填">
-          <el-switch v-model="crfForm.required" />
+        <el-form-item label="允许录入">
+          <el-switch v-model="crfForm.userInputEnabled" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -217,8 +240,8 @@
       <el-form :model="personnelForm" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="姓名" required>
-              <el-input v-model="personnelForm.name" />
+            <el-form-item label="用户ID" required>
+              <el-input-number v-model="personnelForm.userId" :min="1" style="width:100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -234,19 +257,11 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="电话">
-              <el-input v-model="personnelForm.phone" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="邮箱">
-              <el-input v-model="personnelForm.email" />
+            <el-form-item label="中心ID" required>
+              <el-input-number v-model="personnelForm.siteId" :min="1" style="width:100%" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="中心名称">
-          <el-input v-model="personnelForm.centerName" />
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="personnelDialogVisible = false">取消</el-button>
@@ -281,25 +296,24 @@ const personnel = ref([])
 const statusType = { DRAFT: 'info', ACTIVE: 'success', CLOSED: 'warning' }
 const statusLabel = { DRAFT: '草稿', ACTIVE: '进行中', CLOSED: '已关闭' }
 const typeLabel = { INTERVENTIONAL: '干预性研究', OBSERVATIONAL: '观察性研究', DIAGNOSTIC: '诊断试验' }
-const stageTypeLabel = { SCREENING: '筛选', TREATMENT: '治疗', FOLLOWUP: '随访', END: '结束' }
-const crfCategoryLabel = { GENERAL: '一般信息', EFFICACY: '疗效指标', SAFETY: '安全性', LAB: '实验室' }
+const repeatTypeLabel = { NONE: '不重复', DAY: '按天', WEEK: '按周', MONTH: '按月' }
 const roleLabel = { PI: '主要研究者', CRC: '研究协调员', DM: '数据管理员', CRA: '监查员' }
 
 const stageDialogVisible = ref(false)
 const stageSubmitting = ref(false)
-const stageForm = ref({ name: '', type: 'SCREENING', orderNum: 1, description: '' })
+const stageForm = ref({ name: '', repeatType: 'NONE', autoAdd: true, baselineDays: 0, baselineDirection: 'DAY', beforeDays: 0, afterDays: 0 })
 
 const visitDialogVisible = ref(false)
 const visitSubmitting = ref(false)
-const visitForm = ref({ source: '', target: '', allowDays: 0 })
+const visitForm = ref({ name: '', sourceStageId: null, targetStageId: null, baselineDays: 0, baselineDirection: 'DAY', beforeDays: 0, afterDays: 0, crfComponentId: '' })
 
 const crfDialogVisible = ref(false)
 const crfSubmitting = ref(false)
-const crfForm = ref({ crfName: '', stageName: '', visitPlanName: '', category: 'GENERAL', required: false })
+const crfForm = ref({ stageId: null, crfId: 1, crfVersionId: 1, userInputEnabled: true })
 
 const personnelDialogVisible = ref(false)
 const personnelSubmitting = ref(false)
-const personnelForm = ref({ name: '', role: 'CRC', phone: '', email: '', centerName: '' })
+const personnelForm = ref({ userId: 1, siteId: 1, role: 'CRC' })
 
 onMounted(() => fetchProject())
 
@@ -311,7 +325,7 @@ async function fetchProject() {
     stages.value = res.stages || res.stageList || []
     visitPlans.value = res.visitPlans || res.visitPlanList || []
     crfBindings.value = res.crfBindings || res.crfBindingList || []
-    personnel.value = res.personnel || res.personnelList || []
+    personnel.value = res.sitePersonnel || res.personnel || res.personnelList || []
   } catch {
     ElMessage.error('加载项目详情失败')
   } finally {
@@ -342,16 +356,16 @@ async function handleClose() {
 }
 
 async function handleAddStage() {
-  if (!stageForm.value.name || !stageForm.value.type) {
-    ElMessage.warning('请填写阶段名称和类型')
+  if (!stageForm.value.name || !stageForm.value.repeatType) {
+    ElMessage.warning('请填写阶段名称和重复类型')
     return
   }
   stageSubmitting.value = true
   try {
-    await addStage(projectId, stageForm.value)
+    await addStage(projectId, normalizeNumbers(stageForm.value, ['baselineDays', 'beforeDays', 'afterDays']))
     ElMessage.success('阶段添加成功')
     stageDialogVisible.value = false
-    stageForm.value = { name: '', type: 'SCREENING', orderNum: 1, description: '' }
+    stageForm.value = { name: '', repeatType: 'NONE', autoAdd: true, baselineDays: 0, baselineDirection: 'DAY', beforeDays: 0, afterDays: 0 }
     await fetchProject()
   } finally {
     stageSubmitting.value = false
@@ -359,16 +373,16 @@ async function handleAddStage() {
 }
 
 async function handleAddVisitPlan() {
-  if (!visitForm.value.source || !visitForm.value.target) {
+  if (!visitForm.value.name || !visitForm.value.sourceStageId || !visitForm.value.targetStageId) {
     ElMessage.warning('请选择来源和目标阶段')
     return
   }
   visitSubmitting.value = true
   try {
-    await addVisitPlan(projectId, visitForm.value)
+    await addVisitPlan(projectId, normalizeNumbers(visitForm.value, ['sourceStageId', 'targetStageId', 'baselineDays', 'beforeDays', 'afterDays']))
     ElMessage.success('访视计划添加成功')
     visitDialogVisible.value = false
-    visitForm.value = { source: '', target: '', allowDays: 0 }
+    visitForm.value = { name: '', sourceStageId: null, targetStageId: null, baselineDays: 0, baselineDirection: 'DAY', beforeDays: 0, afterDays: 0, crfComponentId: '' }
     await fetchProject()
   } finally {
     visitSubmitting.value = false
@@ -376,16 +390,16 @@ async function handleAddVisitPlan() {
 }
 
 async function handleAddCrf() {
-  if (!crfForm.value.crfName || !crfForm.value.stageName) {
-    ElMessage.warning('请填写CRF名称并选择关联阶段')
+  if (!crfForm.value.crfId || !crfForm.value.stageId) {
+    ElMessage.warning('请填写CRF ID并选择关联阶段')
     return
   }
   crfSubmitting.value = true
   try {
-    await bindCrf(projectId, crfForm.value)
+    await bindCrf(projectId, normalizeNumbers(crfForm.value, ['stageId', 'crfId', 'crfVersionId']))
     ElMessage.success('CRF绑定成功')
     crfDialogVisible.value = false
-    crfForm.value = { crfName: '', stageName: '', visitPlanName: '', category: 'GENERAL', required: false }
+    crfForm.value = { stageId: null, crfId: 1, crfVersionId: 1, userInputEnabled: true }
     await fetchProject()
   } finally {
     crfSubmitting.value = false
@@ -393,16 +407,16 @@ async function handleAddCrf() {
 }
 
 async function handleAddPersonnel() {
-  if (!personnelForm.value.name || !personnelForm.value.role) {
-    ElMessage.warning('请填写姓名和角色')
+  if (!personnelForm.value.userId || !personnelForm.value.siteId || !personnelForm.value.role) {
+    ElMessage.warning('请填写用户ID、中心ID和角色')
     return
   }
   personnelSubmitting.value = true
   try {
-    await assignPersonnel(projectId, personnelForm.value)
+    await assignPersonnel(projectId, normalizeNumbers(personnelForm.value, ['userId', 'siteId']))
     ElMessage.success('人员添加成功')
     personnelDialogVisible.value = false
-    personnelForm.value = { name: '', role: 'CRC', phone: '', email: '', centerName: '' }
+    personnelForm.value = { userId: 1, siteId: 1, role: 'CRC' }
     await fetchProject()
   } finally {
     personnelSubmitting.value = false
@@ -414,6 +428,32 @@ function formatTime(t) {
   const d = new Date(t)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function normalizeNumbers(payload, keys) {
+  const normalized = { ...payload }
+  keys.forEach(key => {
+    if (normalized[key] !== null && normalized[key] !== undefined && normalized[key] !== '') {
+      normalized[key] = Number(normalized[key])
+    }
+  })
+  return normalized
+}
+
+function stageName(id) {
+  const stage = stages.value.find(item => Number(item.id) === Number(id))
+  return stage ? stage.name : (id ? `阶段 ${id}` : '-')
+}
+
+function formatBaseline(row) {
+  if (row.baselineDays === null || row.baselineDays === undefined) return '-'
+  return `${row.baselineDays}${row.baselineDirection || 'DAY'}`
+}
+
+function formatWindow(row) {
+  const before = row.beforeDays ?? 0
+  const after = row.afterDays ?? 0
+  return `-${before}/+${after}天`
 }
 </script>
 

@@ -253,7 +253,7 @@ function openApproveDialog(row) {
 async function handleApprove() {
   approveSubmitting.value = true
   try {
-    await approveExportTask(approveForm.value.id, { comment: approveForm.value.comment })
+    await approveExportTask(approveForm.value.id, { userId: 'ui-user', message: approveForm.value.comment })
     ElMessage.success('已批准')
     approveDialogVisible.value = false
     await loadList()
@@ -276,7 +276,7 @@ async function handleReject() {
   }
   rejectSubmitting.value = true
   try {
-    await rejectExportTask(rejectForm.value.id, { reason: rejectForm.value.reason })
+    await rejectExportTask(rejectForm.value.id, { userId: 'ui-user', reason: rejectForm.value.reason })
     ElMessage.success('已驳回')
     rejectDialogVisible.value = false
     await loadList()

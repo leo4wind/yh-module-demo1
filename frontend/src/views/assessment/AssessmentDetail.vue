@@ -77,6 +77,16 @@
         <el-form-item label="字段名称" prop="fieldLabel">
           <el-input v-model="fieldForm.fieldLabel" placeholder="如: 收缩压" />
         </el-form-item>
+        <el-form-item label="字段编码" prop="fieldCode">
+          <el-input v-model="fieldForm.fieldCode" placeholder="如: SBP" />
+        </el-form-item>
+        <el-form-item label="字段类型" prop="fieldType">
+          <el-select v-model="fieldForm.fieldType" style="width:100%">
+            <el-option label="文本" value="TEXT" />
+            <el-option label="数值" value="NUMBER" />
+            <el-option label="日期" value="DATE" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="字段值" prop="fieldValue">
           <el-input v-model="fieldForm.fieldValue" placeholder="如: 120" />
         </el-form-item>
@@ -145,9 +155,13 @@ const editFieldId = ref(null)
 const fieldSubmitting = ref(false)
 const fieldForm = ref({
   fieldLabel: '',
+  fieldCode: '',
   fieldValue: '',
   fieldValueText: '',
-  dataUnit: ''
+  dataUnit: '',
+  fieldType: 'TEXT',
+  subTableId: '',
+  userId: 1
 })
 
 // Raise query dialog
@@ -155,7 +169,11 @@ const raiseQueryDialogVisible = ref(false)
 const querySubmitting = ref(false)
 const queryForm = ref({
   fieldLabel: '',
+  fieldCode: '',
   fieldValue: '',
+  fieldValueText: '',
+  fieldType: 'TEXT',
+  subTableId: '',
   question: ''
 })
 
@@ -203,9 +221,13 @@ function openEditField(row) {
   editFieldId.value = row.id || null
   fieldForm.value = {
     fieldLabel: row.fieldLabel || '',
+    fieldCode: row.fieldCode || '',
     fieldValue: row.fieldValue || '',
     fieldValueText: row.fieldValueText || '',
-    dataUnit: row.dataUnit || ''
+    dataUnit: row.dataUnit || '',
+    fieldType: row.fieldType || 'TEXT',
+    subTableId: row.subTableId || '',
+    userId: row.userId || 1
   }
   saveFieldDialogVisible.value = true
 }
@@ -213,7 +235,11 @@ function openEditField(row) {
 function openRaiseQuery(row) {
   queryForm.value = {
     fieldLabel: row.fieldLabel || '',
+    fieldCode: row.fieldCode || '',
     fieldValue: row.fieldValue || '',
+    fieldValueText: row.fieldValueText || '',
+    fieldType: row.fieldType || 'TEXT',
+    subTableId: row.subTableId || '',
     question: ''
   }
   raiseQueryDialogVisible.value = true
@@ -225,7 +251,7 @@ async function handleSaveField() {
     await saveFieldValue(assessmentId, fieldForm.value)
     ElMessage.success('字段值保存成功')
     saveFieldDialogVisible.value = false
-    fieldForm.value = { fieldLabel: '', fieldValue: '', fieldValueText: '', dataUnit: '' }
+    fieldForm.value = { fieldLabel: '', fieldCode: '', fieldValue: '', fieldValueText: '', dataUnit: '', fieldType: 'TEXT', subTableId: '', userId: 1 }
     editFieldId.value = null
     await loadAssessment()
     await loadFieldValues()
@@ -245,13 +271,18 @@ async function handleRaiseQuery() {
   try {
     await raiseQuery({
       assessmentId: Number(assessmentId),
-      fieldLabel: queryForm.value.fieldLabel,
-      fieldValue: queryForm.value.fieldValue,
-      question: queryForm.value.question
+      fieldCode: queryForm.value.fieldCode || queryForm.value.fieldLabel || 'FIELD',
+      subTableId: queryForm.value.subTableId || '',
+      fieldType: queryForm.value.fieldType || 'TEXT',
+      question: queryForm.value.question,
+      originalFieldCode: queryForm.value.fieldCode || queryForm.value.fieldLabel || 'FIELD',
+      originalFieldValue: queryForm.value.fieldValue || '',
+      originalFieldValueText: queryForm.value.fieldValueText || queryForm.value.fieldValue || '',
+      userId: 1
     })
     ElMessage.success('质疑已提交')
     raiseQueryDialogVisible.value = false
-    queryForm.value = { fieldLabel: '', fieldValue: '', question: '' }
+    queryForm.value = { fieldLabel: '', fieldCode: '', fieldValue: '', fieldValueText: '', fieldType: 'TEXT', subTableId: '', question: '' }
     await loadQueryCount()
   } catch {
     ElMessage.error('提交质疑失败')

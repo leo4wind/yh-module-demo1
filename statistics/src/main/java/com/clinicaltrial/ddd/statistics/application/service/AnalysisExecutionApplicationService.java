@@ -2,6 +2,7 @@ package com.clinicaltrial.ddd.statistics.application.service;
 
 import org.springframework.stereotype.Service;
 import com.clinicaltrial.ddd.common.infrastructure.EventBus;
+import com.clinicaltrial.ddd.common.model.BusinessRuleViolationException;
 import com.clinicaltrial.ddd.statistics.application.command.ExecuteAnalysisCommand;
 import com.clinicaltrial.ddd.statistics.domain.model.aggregate.AnalysisProject;
 import com.clinicaltrial.ddd.statistics.domain.model.entity.AnalysisConfig;
@@ -69,7 +70,8 @@ public class AnalysisExecutionApplicationService {
         AnalysisConfig config = project.getAnalysisConfigs().stream()
                 .filter(c -> c.getId().equals(command.getConfigId()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new BusinessRuleViolationException(
+                        "ANALYSIS_CONFIG_NOT_FOUND",
                         "AnalysisConfig " + command.getConfigId() + " not found in project"));
 
         // Step 3: Execute analysis via domain service

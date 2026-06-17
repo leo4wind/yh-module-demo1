@@ -101,8 +101,11 @@
     <!-- Withdraw Dialog -->
     <el-dialog v-model="withdrawDialogVisible" title="受试者脱落" width="420px">
       <el-form :model="withdrawForm" label-width="100px">
-        <el-form-item label="脱落原因" prop="reason">
-          <el-input v-model="withdrawForm.reason" type="textarea" :rows="3" placeholder="请输入脱落原因" />
+        <el-form-item label="原因代码" prop="reasonCode">
+          <el-input v-model="withdrawForm.reasonCode" placeholder="如: WITHDRAWN" />
+        </el-form-item>
+        <el-form-item label="脱落原因" prop="reasonDescription">
+          <el-input v-model="withdrawForm.reasonDescription" type="textarea" :rows="3" placeholder="请输入脱落原因" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -184,7 +187,7 @@ const stageStatusLabel = {
 // Withdraw
 const withdrawDialogVisible = ref(false)
 const withdrawSubmitting = ref(false)
-const withdrawForm = ref({ reason: '' })
+const withdrawForm = ref({ reasonCode: 'WITHDRAWN', reasonDescription: '' })
 
 // Change status
 const changeStatusDialogVisible = ref(false)
@@ -219,15 +222,19 @@ async function loadStages() {
 }
 
 async function handleWithdraw() {
-  if (!withdrawForm.value.reason) {
+  if (!withdrawForm.value.reasonDescription) {
     ElMessage.warning('请输入脱落原因')
     return
   }
   withdrawSubmitting.value = true
   try {
-    await withdrawSubject(subjectId, { reason: withdrawForm.value.reason })
+    await withdrawSubject(subjectId, {
+      reasonCode: withdrawForm.value.reasonCode || 'WITHDRAWN',
+      reasonDescription: withdrawForm.value.reasonDescription
+    })
     ElMessage.success('受试者已标记为脱落')
     withdrawDialogVisible.value = false
+    withdrawForm.value = { reasonCode: 'WITHDRAWN', reasonDescription: '' }
     await loadSubject()
   } finally {
     withdrawSubmitting.value = false
@@ -242,7 +249,7 @@ async function handleChangeStatus() {
   changeStatusSubmitting.value = true
   try {
     await changeStatus(subjectId, {
-      status: changeStatusForm.value.status,
+      newStatus: changeStatusForm.value.status,
       reason: changeStatusForm.value.reason
     })
     ElMessage.success('状态修改成功')

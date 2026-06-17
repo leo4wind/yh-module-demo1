@@ -63,30 +63,18 @@
     <!-- Enroll Subject Dialog -->
     <el-dialog v-model="enrollDialogVisible" title="直接入组" width="480px" @close="resetEnrollForm">
       <el-form ref="enrollFormRef" :model="enrollForm" :rules="enrollRules" label-width="110px">
-        <el-form-item label="受试者编号" prop="code">
-          <el-input v-model="enrollForm.code" placeholder="如: RCT-001" />
+        <el-form-item label="用户ID" prop="userId">
+          <el-input-number v-model="enrollForm.userId" :min="1" style="width:100%" />
         </el-form-item>
         <el-form-item label="病历号" prop="blh">
           <el-input v-model="enrollForm.blh" placeholder="如: 2024001" />
         </el-form-item>
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="enrollForm.name" />
+        <el-form-item label="中心ID" prop="siteId">
+          <el-input-number v-model="enrollForm.siteId" :min="1" style="width:100%" />
         </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="性别" prop="gender">
-              <el-select v-model="enrollForm.gender" style="width:100%">
-                <el-option label="男" value="MALE" />
-                <el-option label="女" value="FEMALE" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="试验序号" prop="syxh">
-              <el-input-number v-model="enrollForm.syxh" :min="1" style="width:100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="试验序号" prop="syxh">
+          <el-input v-model="enrollForm.syxh" placeholder="如: SY001" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="enrollDialogVisible = false">取消</el-button>
@@ -161,15 +149,14 @@ const enrollDialogVisible = ref(false)
 const enrollSubmitting = ref(false)
 const enrollFormRef = ref(null)
 const enrollForm = ref({
-  code: '',
+  userId: 1,
+  siteId: 1,
   blh: '',
-  name: '',
-  gender: 'MALE',
-  syxh: 1
+  syxh: ''
 })
 const enrollRules = {
-  code: [{ required: true, message: '请输入受试者编号', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
+  userId: [{ required: true, message: '请输入用户ID', trigger: 'blur' }],
+  siteId: [{ required: true, message: '请输入中心ID', trigger: 'blur' }]
 }
 
 // Filter form
@@ -203,7 +190,7 @@ async function fetchList() {
 
 function resetEnrollForm() {
   enrollFormRef.value?.resetFields()
-  enrollForm.value = { code: '', blh: '', name: '', gender: 'MALE', syxh: 1 }
+  enrollForm.value = { userId: 1, siteId: 1, blh: '', syxh: '' }
 }
 
 async function handleDirectEnroll() {
@@ -211,7 +198,14 @@ async function handleDirectEnroll() {
   if (!valid) return
   enrollSubmitting.value = true
   try {
-    await directEnroll({ ...enrollForm.value, projectId })
+    await directEnroll({
+      projectId: Number(projectId),
+      siteId: Number(enrollForm.value.siteId),
+      userId: Number(enrollForm.value.userId),
+      blh: enrollForm.value.blh,
+      syxh: String(enrollForm.value.syxh || ''),
+      groupSubsetIds: []
+    })
     ElMessage.success('受试者入组成功')
     enrollDialogVisible.value = false
     await fetchList()

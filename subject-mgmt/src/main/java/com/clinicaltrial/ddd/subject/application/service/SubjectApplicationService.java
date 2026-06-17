@@ -20,6 +20,7 @@ import com.clinicaltrial.ddd.subject.domain.service.SubjectEnrollmentDomainServi
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.UUID;
 
 /**
  * Application service for the Subject Management bounded context.
@@ -93,6 +94,7 @@ public class SubjectApplicationService {
                 command.getBlh(),
                 command.getSyxh(),
                 Collections.<String>emptyList());
+        subject.assignId(generateSubjectId());
 
         // Build screening info value object
         ScreeningInfo screeningInfo = new ScreeningInfo(
@@ -107,7 +109,7 @@ public class SubjectApplicationService {
         Subject savedSubject = subjectRepository.save(subject);
 
         // Publish all pending domain events
-        eventBus.publishAll(savedSubject);
+        eventBus.publishAll(subject);
 
         return savedSubject;
     }
@@ -155,6 +157,7 @@ public class SubjectApplicationService {
                     command.getBlh(),
                     command.getSyxh(),
                     command.getGroupSubsetIds());
+            subject.assignId(generateSubjectId());
 
             subject.assignCode(code);
 
@@ -163,7 +166,7 @@ public class SubjectApplicationService {
         }
 
         Subject savedSubject = subjectRepository.save(subject);
-        eventBus.publishAll(savedSubject);
+        eventBus.publishAll(subject);
 
         return savedSubject;
     }
@@ -197,7 +200,7 @@ public class SubjectApplicationService {
         subject.withdraw(fallOffReason);
 
         Subject savedSubject = subjectRepository.save(subject);
-        eventBus.publishAll(savedSubject);
+        eventBus.publishAll(subject);
 
         return savedSubject;
     }
@@ -263,8 +266,12 @@ public class SubjectApplicationService {
         }
 
         Subject savedSubject = subjectRepository.save(subject);
-        eventBus.publishAll(savedSubject);
+        eventBus.publishAll(subject);
 
         return savedSubject;
+    }
+
+    private SubjectId generateSubjectId() {
+        return new SubjectId(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
     }
 }

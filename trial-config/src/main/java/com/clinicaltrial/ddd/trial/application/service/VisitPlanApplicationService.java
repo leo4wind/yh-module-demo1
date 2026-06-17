@@ -12,6 +12,8 @@ import com.clinicaltrial.ddd.trial.domain.model.valueobject.WindowPeriod;
 import com.clinicaltrial.ddd.trial.domain.repository.ProjectRepository;
 import com.clinicaltrial.ddd.trial.domain.service.VisitPlanDomainService;
 
+import java.util.UUID;
+
 /**
  * Application service for Visit Plan management use cases.
  * <p>
@@ -91,7 +93,7 @@ public class VisitPlanApplicationService {
         }
 
         // Delegate to the aggregate
-        VisitPlanId visitPlanId = new VisitPlanId(null); // ID will be generated
+        VisitPlanId visitPlanId = new VisitPlanId(generateNumericId());
         project.configureVisitPlan(visitPlanId, command.getName(),
                 command.getSourceStageId(), command.getTargetStageId(),
                 baselineInterval, windowPeriod, command.getCrfComponentId());
@@ -108,5 +110,9 @@ public class VisitPlanApplicationService {
         eventBus.publishAll(savedProject);
 
         return savedProject;
+    }
+
+    private Long generateNumericId() {
+        return UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
     }
 }

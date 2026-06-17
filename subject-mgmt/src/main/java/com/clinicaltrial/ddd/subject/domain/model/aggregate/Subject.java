@@ -361,6 +361,19 @@ public class Subject extends AggregateRoot<SubjectId> {
     }
 
     /**
+     * Assigns a persistent identity before the first lifecycle event is raised.
+     */
+    public void assignId(SubjectId id) {
+        if (id == null || id.getValue() == null) {
+            throw new IllegalArgumentException("SubjectId must not be null");
+        }
+        if (this.id != null) {
+            throw new IllegalStateException("Subject already has an id: " + this.id);
+        }
+        this.id = id;
+    }
+
+    /**
      * Transitions the subject from {@link SubjectStatus#ENROLLED} to
      * {@link SubjectStatus#ACTIVE}. Called after enrollment formalities are complete.
      * <p>

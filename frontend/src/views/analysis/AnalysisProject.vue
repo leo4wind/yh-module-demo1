@@ -19,6 +19,7 @@
                 link
                 size="small"
                 @click="openExecuteDialog(row)"
+                :disabled="!(row.analysisConfigs && row.analysisConfigs.length)"
               >
                 执行分析
               </el-button>
@@ -41,8 +42,8 @@
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="配置">
-                    <div v-if="row.configs && row.configs.length > 0" style="display:flex;flex-direction:column;gap:8px">
-                      <div v-for="cfg in row.configs" :key="cfg.id" style="padding:8px 12px;background:#f5f7fa;border-radius:4px">
+                    <div v-if="row.analysisConfigs && row.analysisConfigs.length > 0" style="display:flex;flex-direction:column;gap:8px">
+                      <div v-for="cfg in row.analysisConfigs" :key="cfg.id" style="padding:8px 12px;background:#f5f7fa;border-radius:4px">
                         <div style="font-size:13px;color:#606266">
                           <strong>{{ cfg.configKey || cfg.name }}</strong>:
                           {{ cfg.configValue || cfg.value }}
@@ -100,7 +101,9 @@
           <span>{{ executeForm.projectName }}</span>
         </el-form-item>
         <el-form-item label="配置ID" prop="configId">
-          <el-input-number v-model="executeForm.configId" :min="1" style="width:100%" />
+          <el-select v-model="executeForm.configId" style="width:100%" placeholder="请选择配置">
+            <el-option v-for="cfg in executeForm.configs" :key="cfg.id" :label="cfg.name || cfg.id" :value="cfg.id" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -128,7 +131,7 @@ const createForm = ref({ name: '', description: '' })
 // Execute dialog
 const executeDialogVisible = ref(false)
 const executeSubmitting = ref(false)
-const executeForm = ref({ projectId: null, projectName: '', configId: 1 })
+const executeForm = ref({ projectId: null, projectName: '', configId: null, configs: [] })
 
 onMounted(async () => {
   await loadList()
@@ -164,11 +167,20 @@ async function handleCreate() {
 }
 
 function openExecuteDialog(row) {
-  executeForm.value = { projectId: row.id, projectName: row.name, configId: 1 }
+  const configs = row.analysisConfigs || []
+  if (!configs.length) {
+    ElMessage.warning('该分析项目暂无配置，不能执行')
+    return
+  }
+  executeForm.value = { projectId: row.id, projectName: row.name, configId: configs[0].id, configs }
   executeDialogVisible.value = true
 }
 
 async function handleExecute() {
+  if (!executeForm.value.configId) {
+    ElMessage.warning('请选择分析配置')
+    return
+  }
   executeSubmitting.value = true
   try {
     await executeAnalysis(executeForm.value.projectId, { configId: executeForm.value.configId })

@@ -49,6 +49,13 @@ public class ExportTaskRepositoryImpl implements ExportTaskRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ExportTask getById(ExportTaskId id) {
+        return findById(id)
+                .orElseThrow(() -> new AggregateNotFoundException("ExportTask", id));
+    }
+
+    @Override
     @Transactional
     public ExportTask save(ExportTask exportTask) {
         ExportTaskJpaEntity entity = toJpa(exportTask);

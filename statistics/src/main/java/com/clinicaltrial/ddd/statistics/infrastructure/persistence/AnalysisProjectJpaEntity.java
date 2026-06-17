@@ -8,6 +8,8 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 /**
  * JPA entity mirroring the AnalysisProject aggregate root.
@@ -28,15 +30,19 @@ public class AnalysisProjectJpaEntity {
     private String description;
 
     @OneToMany(mappedBy = "projectId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<VariableDefinitionJpaEntity> variables = new ArrayList<>();
 
     @OneToMany(mappedBy = "projectId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<DataProcessStepJpaEntity> processSteps = new ArrayList<>();
 
     @OneToMany(mappedBy = "projectId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<AnalysisConfigJpaEntity> analysisConfigs = new ArrayList<>();
 
     @OneToMany(mappedBy = "projectId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<AnalysisResultJpaEntity> results = new ArrayList<>();
 
     public AnalysisProjectJpaEntity() {

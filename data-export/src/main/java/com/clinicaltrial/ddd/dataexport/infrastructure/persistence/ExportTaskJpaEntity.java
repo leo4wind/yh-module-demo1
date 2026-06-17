@@ -14,6 +14,8 @@ import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 /**
  * JPA entity mirroring the ExportTask aggregate root.
@@ -72,12 +74,15 @@ public class ExportTaskJpaEntity {
     private String failMessage;
 
     @OneToMany(mappedBy = "taskId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<ExportFieldConfigJpaEntity> fieldConfigs = new ArrayList<>();
 
     @OneToMany(mappedBy = "taskId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<ExportFilterJpaEntity> filters = new ArrayList<>();
 
     @OneToMany(mappedBy = "taskId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private List<ExportExecutionLogJpaEntity> executionLogs = new ArrayList<>();
 
     public ExportTaskJpaEntity() {

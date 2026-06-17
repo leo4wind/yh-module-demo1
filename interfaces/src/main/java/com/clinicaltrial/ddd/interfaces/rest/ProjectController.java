@@ -8,6 +8,7 @@ import com.clinicaltrial.ddd.interfaces.dto.request.CrfBindingRequest;
 import com.clinicaltrial.ddd.interfaces.dto.request.PersonnelRequest;
 import com.clinicaltrial.ddd.interfaces.dto.request.StageRequest;
 import com.clinicaltrial.ddd.interfaces.dto.request.VisitPlanRequest;
+import com.clinicaltrial.ddd.interfaces.dto.response.PersonnelOptionsResponse;
 import com.clinicaltrial.ddd.interfaces.dto.response.ProjectDetailResponse;
 import com.clinicaltrial.ddd.interfaces.dto.response.ProjectSummary;
 import com.clinicaltrial.ddd.trial.application.command.AddStageCommand;
@@ -36,6 +37,8 @@ import com.clinicaltrial.ddd.trial.domain.model.valueobject.StageId;
 import com.clinicaltrial.ddd.trial.domain.model.valueobject.StageRepeatType;
 import com.clinicaltrial.ddd.trial.domain.model.valueobject.WindowPeriod;
 import com.clinicaltrial.ddd.trial.domain.repository.ProjectRepository;
+import com.clinicaltrial.ddd.subject.domain.model.aggregate.Subject;
+import com.clinicaltrial.ddd.subject.domain.repository.SubjectRepository;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,7 +50,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -63,19 +68,22 @@ public class ProjectController {
     private final VisitPlanApplicationService visitPlanAppService;
     private final CrfBindingApplicationService crfBindingAppService;
     private final SitePersonnelApplicationService sitePersonnelAppService;
+    private final SubjectRepository subjectRepository;
 
     public ProjectController(ProjectRepository projectRepository,
                              ProjectApplicationService projectAppService,
                              StageApplicationService stageAppService,
                              VisitPlanApplicationService visitPlanAppService,
                              CrfBindingApplicationService crfBindingAppService,
-                             SitePersonnelApplicationService sitePersonnelAppService) {
+                             SitePersonnelApplicationService sitePersonnelAppService,
+                             SubjectRepository subjectRepository) {
         this.projectRepository = projectRepository;
         this.projectAppService = projectAppService;
         this.stageAppService = stageAppService;
         this.visitPlanAppService = visitPlanAppService;
         this.crfBindingAppService = crfBindingAppService;
         this.sitePersonnelAppService = sitePersonnelAppService;
+        this.subjectRepository = subjectRepository;
     }
 
     /** 分页查询项目列表. */
@@ -120,6 +128,34 @@ public class ProjectController {
     public ApiResponse<ProjectDetailResponse> getProject(@PathVariable Long id) {
         Project project = projectRepository.getById(new ProjectId(id));
         return ApiResponse.success(toDetailResponse(project));
+    }
+
+    /** 项目人员分配下拉选项. */
+    @GetMapping("/{id}/personnel-options")
+    public ApiResponse<PersonnelOptionsResponse> getPersonnelOptions(@PathVariable Long id) {
+        ProjectId projectId = new ProjectId(id);
+        com.clinicaltrial.ddd.subject.domain.model.valueobject.ProjectId subjectProjectId =
+                new com.clinicaltrial.ddd.subject.domain.model.valueobject.ProjectId(id);
+        Project project = projectRepository.getById(projectId);
+        List<Subject> subjects = subjectRepository.findByProjectId(subjectProjectId);
+
+        Map<Long, PersonnelOptionsResponse.OptionVo> users = new LinkedHashMap<>();
+        Map<Long, PersonnelOptionsResponse.OptionVo> sites = new LinkedHashMap<>();
+        addDefaultPersonnelOptions(users, sites);
+
+        for (SitePersonnel sp : project.getSitePersonnel()) {
+            addOption(users, sp.getUserId(), "用户 " + sp.getUserId());
+            addOption(sites, sp.getSiteId(), "中心 " + sp.getSiteId());
+        }
+        for (Subject subject : subjects) {
+            addOption(users, subject.getUserId(), "用户 " + subject.getUserId());
+            addOption(sites, subject.getSiteId(), "中心 " + subject.getSiteId());
+        }
+
+        PersonnelOptionsResponse response = new PersonnelOptionsResponse();
+        response.setUsers(new ArrayList<>(users.values()));
+        response.setSites(new ArrayList<>(sites.values()));
+        return ApiResponse.success(response);
     }
 
     /** 创建项目. */
@@ -310,5 +346,24 @@ public class ProjectController {
         vo.setSiteId(sp.getSiteId());
         vo.setRole(sp.getRole() != null ? sp.getRole().name() : null);
         return vo;
+    }
+
+    private void addDefaultPersonnelOptions(Map<Long, PersonnelOptionsResponse.OptionVo> users,
+                                            Map<Long, PersonnelOptionsResponse.OptionVo> sites) {
+        addOption(users, 1L, "系统用户 1");
+        addOption(users, 100L, "研究者 100");
+        addOption(users, 200L, "数据管理员 200");
+        addOption(sites, 1L, "默认中心 1");
+        addOption(sites, 100L, "研究中心 100");
+        addOption(sites, 200L, "研究中心 200");
+    }
+
+    private void addOption(Map<Long, PersonnelOptionsResponse.OptionVo> options,
+                           Long id,
+                           String label) {
+        if (id == null || options.containsKey(id)) {
+            return;
+        }
+        options.put(id, new PersonnelOptionsResponse.OptionVo(id, label));
     }
 }

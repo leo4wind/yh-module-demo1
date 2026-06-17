@@ -26,6 +26,9 @@ public class EnrollSubjectCommand {
     private final Long userId;
     private final String blh;
     private final String syxh;
+    private final String name;
+    private final String gender;
+    private final Integer age;
     private final List<String> groupSubsetIds;
 
     /**
@@ -37,6 +40,9 @@ public class EnrollSubjectCommand {
      * @param userId         the user identity
      * @param blh            病历号 (medical record number); may be null
      * @param syxh           试验序号 (trial sequence number); may be null
+     * @param name           受试者姓名; may be null
+     * @param gender         性别; may be null
+     * @param age            年龄; may be null
      * @param groupSubsetIds group/subset identifiers; may be null
      */
     public EnrollSubjectCommand(ProjectId projectId,
@@ -44,8 +50,20 @@ public class EnrollSubjectCommand {
                                  Long userId,
                                  String blh,
                                  String syxh,
+                                 String name,
+                                 String gender,
+                                 Integer age,
                                  List<String> groupSubsetIds) {
-        this(null, projectId, siteId, userId, blh, syxh, groupSubsetIds);
+        this(null, projectId, siteId, userId, blh, syxh, name, gender, age, groupSubsetIds);
+    }
+
+    public EnrollSubjectCommand(ProjectId projectId,
+                                 Long siteId,
+                                 Long userId,
+                                 String blh,
+                                 String syxh,
+                                 List<String> groupSubsetIds) {
+        this(projectId, siteId, userId, blh, syxh, null, null, null, groupSubsetIds);
     }
 
     /**
@@ -58,6 +76,9 @@ public class EnrollSubjectCommand {
      * @param userId         the user identity
      * @param blh            病历号 (medical record number); may be null
      * @param syxh           试验序号 (trial sequence number); may be null
+     * @param name           受试者姓名; may be null
+     * @param gender         性别; may be null
+     * @param age            年龄; may be null
      * @param groupSubsetIds group/subset identifiers; may be null
      */
     public EnrollSubjectCommand(SubjectId subjectId,
@@ -66,6 +87,9 @@ public class EnrollSubjectCommand {
                                  Long userId,
                                  String blh,
                                  String syxh,
+                                 String name,
+                                 String gender,
+                                 Integer age,
                                  List<String> groupSubsetIds) {
         this.subjectId = subjectId;
         this.projectId = projectId;
@@ -73,7 +97,20 @@ public class EnrollSubjectCommand {
         this.userId = userId;
         this.blh = blh;
         this.syxh = syxh;
+        this.name = name;
+        this.gender = gender;
+        this.age = age;
         this.groupSubsetIds = groupSubsetIds;
+    }
+
+    public EnrollSubjectCommand(SubjectId subjectId,
+                                 ProjectId projectId,
+                                 Long siteId,
+                                 Long userId,
+                                 String blh,
+                                 String syxh,
+                                 List<String> groupSubsetIds) {
+        this(subjectId, projectId, siteId, userId, blh, syxh, null, null, null, groupSubsetIds);
     }
 
     public SubjectId getSubjectId() {
@@ -98,6 +135,18 @@ public class EnrollSubjectCommand {
 
     public String getSyxh() {
         return syxh;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public Integer getAge() {
+        return age;
     }
 
     public List<String> getGroupSubsetIds() {

@@ -44,6 +44,13 @@ public class SubjectRepositoryImpl implements SubjectRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Subject getById(SubjectId subjectId) {
+        return findById(subjectId)
+                .orElseThrow(() -> new AggregateNotFoundException("Subject", subjectId.getValue()));
+    }
+
+    @Override
     @Transactional
     public Subject save(Subject subject) {
         SubjectJpaEntity entity = toJpa(subject);
@@ -87,6 +94,9 @@ public class SubjectRepositoryImpl implements SubjectRepository {
         entity.setSiteId(domain.getSiteId());
         entity.setBlh(domain.getBlh());
         entity.setSyxh(domain.getSyxh());
+        entity.setName(domain.getName());
+        entity.setGender(domain.getGender());
+        entity.setAge(domain.getAge());
         entity.setGroupSubsetIds(domain.getGroupSubsetIds() != null
                 ? new java.util.ArrayList<>(domain.getGroupSubsetIds())
                 : new java.util.ArrayList<String>());
@@ -123,10 +133,16 @@ public class SubjectRepositoryImpl implements SubjectRepository {
         if (entity.getCode() != null) {
             // Parse "PREFIX-0001" format back to SubjectCode
             int dashIndex = entity.getCode().lastIndexOf('-');
-            if (dashIndex > 0) {
-                String prefix = entity.getCode().substring(0, dashIndex);
-                int seq = Integer.parseInt(entity.getCode().substring(dashIndex + 1));
-                code = new SubjectCode(prefix, seq);
+            if (dashIndex > 0 && dashIndex + 1 < entity.getCode().length()) {
+                String seqPart = entity.getCode().substring(dashIndex + 1);
+                try {
+                    int seq = Integer.parseInt(seqPart);
+                    String prefix = entity.getCode().substring(0, dashIndex);
+                    code = new SubjectCode(prefix, seq);
+                } catch (NumberFormatException e) {
+                    // If the suffix after '-' is not a valid integer, leave code null
+                    code = null;
+                }
             }
         }
 
@@ -139,6 +155,9 @@ public class SubjectRepositoryImpl implements SubjectRepository {
                 entity.getSiteId(),
                 entity.getBlh(),
                 entity.getSyxh(),
+                entity.getName(),
+                entity.getGender(),
+                entity.getAge(),
                 entity.getGroupSubsetIds() != null
                         ? new java.util.ArrayList<>(entity.getGroupSubsetIds())
                         : new java.util.ArrayList<String>(),

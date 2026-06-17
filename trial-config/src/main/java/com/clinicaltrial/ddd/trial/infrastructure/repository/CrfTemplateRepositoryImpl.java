@@ -59,6 +59,7 @@ public class CrfTemplateRepositoryImpl implements CrfTemplateRepository {
     public CrfTemplate save(CrfTemplate template) {
         CrfTemplateJpaEntity entity = toJpa(template);
         CrfTemplateJpaEntity saved = springDataRepo.save(entity);
+        springDataRepo.flush();
         return toDomain(saved);
     }
 

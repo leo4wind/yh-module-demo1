@@ -22,6 +22,9 @@ public class SubjectId implements ValueObject {
      * @throws IllegalArgumentException if value is null
      */
     public SubjectId(Long value) {
+        if (value == null) {
+            throw new IllegalArgumentException("SubjectId value must not be null");
+        }
         this.value = value;
     }
 

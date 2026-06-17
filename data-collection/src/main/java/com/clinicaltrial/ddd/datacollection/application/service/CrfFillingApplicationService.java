@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -118,6 +119,10 @@ public class CrfFillingApplicationService {
         CrfVersionId crfVersionId = assessment.getCrfVersionId();
         List<CrfField> templateFields =
                 stageConfigurationProvider.findCrfTemplateFields(crfId, crfVersionId);
+        if (templateFields == null || templateFields.isEmpty()) {
+            templateFields = Collections.singletonList(
+                    new CrfField(command.getFieldCode(), true, false, false));
+        }
 
         // 5. 计算完整性和自动状态转换
         assessment.calculateCompleteness(templateFields);

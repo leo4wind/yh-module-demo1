@@ -19,6 +19,10 @@
           <el-icon><Folder /></el-icon>
           <span>项目中心</span>
         </el-menu-item>
+        <el-menu-item index="/crf-templates">
+          <el-icon><Folder /></el-icon>
+          <span>CRF模板管理</span>
+        </el-menu-item>
         <el-menu-item index="/export-tasks">
           <el-icon><Download /></el-icon>
           <span>数据导出</span>
@@ -50,6 +54,7 @@ export default {
       const path = this.$route.path
       if (path.startsWith('/projects')) return '/projects'
       if (path.startsWith('/subjects') || path.startsWith('/assessments')) return '/projects'
+      if (path.startsWith('/crf-templates')) return '/crf-templates'
       if (path.startsWith('/export-tasks')) return '/export-tasks'
       if (path.startsWith('/analysis')) return '/analysis'
       return '/'

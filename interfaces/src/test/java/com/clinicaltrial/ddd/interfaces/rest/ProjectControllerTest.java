@@ -10,6 +10,7 @@ import com.clinicaltrial.ddd.trial.domain.model.aggregate.Project;
 import com.clinicaltrial.ddd.trial.domain.model.valueobject.ProjectId;
 import com.clinicaltrial.ddd.trial.domain.model.valueobject.ProjectStatus;
 import com.clinicaltrial.ddd.trial.domain.repository.ProjectRepository;
+import com.clinicaltrial.ddd.subject.domain.repository.SubjectRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,11 +54,14 @@ class ProjectControllerTest {
     @Mock
     private SitePersonnelApplicationService sitePersonnelAppService;
 
+    @Mock
+    private SubjectRepository subjectRepository;
+
     @BeforeEach
     void setUp() {
         ProjectController controller = new ProjectController(
                 projectRepository, projectAppService, stageAppService,
-                visitPlanAppService, crfBindingAppService, sitePersonnelAppService);
+                visitPlanAppService, crfBindingAppService, sitePersonnelAppService, subjectRepository);
         mockMvc = standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -88,6 +92,21 @@ class ProjectControllerTest {
         mockMvc.perform(get("/api/projects/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void getPersonnelOptions_returnsUsersAndSites() throws Exception {
+        Project project = ControllerTestFixtures.aProject();
+        when(projectRepository.getById(new ProjectId(1L))).thenReturn(project);
+        when(subjectRepository.findByProjectId(
+                new com.clinicaltrial.ddd.subject.domain.model.valueobject.ProjectId(1L)))
+                .thenReturn(Collections.singletonList(ControllerTestFixtures.aSubject()));
+
+        mockMvc.perform(get("/api/projects/1/personnel-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.users").isArray())
+                .andExpect(jsonPath("$.data.sites").isArray());
     }
 
     // ---------------------------------------------------------------

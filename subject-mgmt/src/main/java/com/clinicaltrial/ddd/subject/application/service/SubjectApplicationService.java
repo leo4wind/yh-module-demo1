@@ -93,6 +93,9 @@ public class SubjectApplicationService {
                 command.getSiteId(),
                 command.getBlh(),
                 command.getSyxh(),
+                command.getName(),
+                command.getGender(),
+                command.getAge(),
                 Collections.<String>emptyList());
         subject.assignId(generateSubjectId());
 
@@ -156,6 +159,9 @@ public class SubjectApplicationService {
                     command.getSiteId(),
                     command.getBlh(),
                     command.getSyxh(),
+                    command.getName(),
+                    command.getGender(),
+                    command.getAge(),
                     command.getGroupSubsetIds());
             subject.assignId(generateSubjectId());
 

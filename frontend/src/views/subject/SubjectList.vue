@@ -8,7 +8,7 @@
         <el-button type="primary" @click="filterDialogVisible = true">
           <el-icon><Search /></el-icon>筛选受试者
         </el-button>
-        <el-button type="success" @click="enrollDialogVisible = true">
+        <el-button type="success" @click="openEnrollDialog">
           <el-icon><Plus /></el-icon>直接入组
         </el-button>
       </div>
@@ -61,19 +61,50 @@
     </div>
 
     <!-- Enroll Subject Dialog -->
-    <el-dialog v-model="enrollDialogVisible" title="直接入组" width="480px" @close="resetEnrollForm">
+    <el-dialog v-model="enrollDialogVisible" title="新增受试者并直接入组" width="520px" @close="resetEnrollForm">
       <el-form ref="enrollFormRef" :model="enrollForm" :rules="enrollRules" label-width="110px">
-        <el-form-item label="用户ID" prop="userId">
-          <el-input-number v-model="enrollForm.userId" :min="1" style="width:100%" />
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="enrollForm.name" placeholder="填写受试者姓名" />
         </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="性别" prop="gender">
+              <el-select v-model="enrollForm.gender" placeholder="请选择性别" style="width:100%">
+                <el-option label="男" value="MALE" />
+                <el-option label="女" value="FEMALE" />
+                <el-option label="未知" value="UNKNOWN" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="年龄" prop="age">
+              <el-input-number v-model="enrollForm.age" :min="0" :max="130" style="width:100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="病历号" prop="blh">
-          <el-input v-model="enrollForm.blh" placeholder="如: 2024001" />
-        </el-form-item>
-        <el-form-item label="中心ID" prop="siteId">
-          <el-input-number v-model="enrollForm.siteId" :min="1" style="width:100%" />
+          <el-input v-model="enrollForm.blh" placeholder="填写院内病历号" />
         </el-form-item>
         <el-form-item label="试验序号" prop="syxh">
-          <el-input v-model="enrollForm.syxh" placeholder="如: SY001" />
+          <el-input v-model="enrollForm.syxh" placeholder="填写或留空自动生成" />
+        </el-form-item>
+        <el-form-item label="研究中心" prop="siteId">
+          <el-select v-model="enrollForm.siteId" filterable placeholder="请选择研究中心" style="width:100%">
+            <el-option
+              v-for="site in personnelOptions.sites"
+              :key="site.id"
+              :label="formatOption(site)"
+              :value="String(site.id)" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="入组人员" prop="userId">
+          <el-select v-model="enrollForm.userId" filterable placeholder="请选择入组操作人" style="width:100%">
+            <el-option
+              v-for="user in personnelOptions.users"
+              :key="user.id"
+              :label="formatOption(user)"
+              :value="String(user.id)" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -115,6 +146,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, Plus } from '@element-plus/icons-vue'
 import { getSubjects, directEnroll } from '../../api/subject'
+import { getPersonnelOptions } from '../../api/project'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -149,21 +181,40 @@ const enrollDialogVisible = ref(false)
 const enrollSubmitting = ref(false)
 const enrollFormRef = ref(null)
 const enrollForm = ref({
-  userId: 1,
-  siteId: 1,
+  userId: '',
+  siteId: '',
+  name: '',
+  gender: '',
+  age: null,
   blh: '',
   syxh: ''
 })
 const enrollRules = {
-  userId: [{ required: true, message: '请输入用户ID', trigger: 'blur' }],
-  siteId: [{ required: true, message: '请输入中心ID', trigger: 'blur' }]
+  name: [{ required: true, message: '请填写受试者姓名', trigger: 'blur' }],
+  blh: [{ required: true, message: '请填写病历号', trigger: 'blur' }],
+  userId: [{ required: true, message: '请选择入组人员', trigger: 'change' }],
+  siteId: [{ required: true, message: '请选择研究中心', trigger: 'change' }]
 }
+const personnelOptions = ref({
+  users: [
+    { id: '1', label: '系统用户 1' },
+    { id: '100', label: '研究者 100' },
+    { id: '200', label: '数据管理员 200' }
+  ],
+  sites: [
+    { id: '1', label: '默认中心 1' },
+    { id: '100', label: '研究中心 100' },
+    { id: '200', label: '研究中心 200' }
+  ]
+})
 
 // Filter form
 const filterDialogVisible = ref(false)
 const filterForm = ref({})
 
-onMounted(() => fetchList())
+onMounted(async () => {
+  await Promise.all([fetchList(), fetchPersonnelOptions()])
+})
 
 async function fetchList() {
   loading.value = true
@@ -190,7 +241,12 @@ async function fetchList() {
 
 function resetEnrollForm() {
   enrollFormRef.value?.resetFields()
-  enrollForm.value = { userId: 1, siteId: 1, blh: '', syxh: '' }
+  enrollForm.value = { userId: '', siteId: '', name: '', gender: '', age: null, blh: '', syxh: '' }
+}
+
+async function openEnrollDialog() {
+  enrollDialogVisible.value = true
+  await fetchPersonnelOptions()
 }
 
 async function handleDirectEnroll() {
@@ -202,6 +258,9 @@ async function handleDirectEnroll() {
       projectId: Number(projectId),
       siteId: Number(enrollForm.value.siteId),
       userId: Number(enrollForm.value.userId),
+      name: enrollForm.value.name,
+      gender: enrollForm.value.gender,
+      age: enrollForm.value.age,
       blh: enrollForm.value.blh,
       syxh: String(enrollForm.value.syxh || ''),
       groupSubsetIds: []
@@ -216,6 +275,18 @@ async function handleDirectEnroll() {
 
 function goDetail(row) {
   router.push('/subjects/' + row.id)
+}
+
+async function fetchPersonnelOptions() {
+  const res = await getPersonnelOptions(projectId)
+  personnelOptions.value = {
+    users: (res.users || []).map(item => ({ ...item, id: String(item.id) })),
+    sites: (res.sites || []).map(item => ({ ...item, id: String(item.id) }))
+  }
+}
+
+function formatOption(option) {
+  return option?.label ? `${option.label} / ${option.id}` : String(option?.id || '')
 }
 
 function formatDate(d) {

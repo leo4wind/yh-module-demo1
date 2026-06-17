@@ -11,6 +11,9 @@ public class SubjectSummary {
     private String status;
     private String blh;
     private String syxh;
+    private String name;
+    private String gender;
+    private Integer age;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -24,4 +27,10 @@ public class SubjectSummary {
     public void setBlh(String blh) { this.blh = blh; }
     public String getSyxh() { return syxh; }
     public void setSyxh(String syxh) { this.syxh = syxh; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
 }

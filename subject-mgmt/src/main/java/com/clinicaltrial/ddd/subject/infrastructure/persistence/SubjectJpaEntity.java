@@ -49,6 +49,15 @@ public class SubjectJpaEntity {
     @Column(name = "syxh", length = 100)
     private String syxh;
 
+    @Column(name = "name", length = 100)
+    private String name;
+
+    @Column(name = "gender", length = 20)
+    private String gender;
+
+    @Column(name = "age")
+    private Integer age;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "rd_subject_group", joinColumns = @JoinColumn(name = "subject_id"))
     @Column(name = "group_subset_id", length = 100)
@@ -134,6 +143,30 @@ public class SubjectJpaEntity {
 
     public void setSyxh(String syxh) {
         this.syxh = syxh;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
     }
 
     public List<String> getGroupSubsetIds() {

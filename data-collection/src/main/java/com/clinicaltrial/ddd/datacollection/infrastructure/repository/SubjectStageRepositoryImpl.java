@@ -46,6 +46,13 @@ public class SubjectStageRepositoryImpl implements SubjectStageRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public SubjectStage getById(SubjectStageId id) {
+        return findById(id)
+                .orElseThrow(() -> new AggregateNotFoundException("SubjectStage", id));
+    }
+
+    @Override
     @Transactional
     public void save(SubjectStage subjectStage) {
         SubjectStageJpaEntity entity = toJpa(subjectStage);
@@ -111,8 +118,8 @@ public class SubjectStageRepositoryImpl implements SubjectStageRepository {
     private SubjectStage toDomain(SubjectStageJpaEntity entity) {
         return SubjectStage.reconstruct(
                 new SubjectStageId(entity.getId()),
-                new SubjectId(entity.getSubjectsUserId()),
-                new StageId(entity.getStageId()),
+                entity.getSubjectsUserId() != null ? new SubjectId(entity.getSubjectsUserId()) : null,
+                entity.getStageId() != null ? new StageId(entity.getStageId()) : null,
                 entity.getPlanEventId() != null ? new VisitPlanId(entity.getPlanEventId()) : null,
                 entity.getStatus(),
                 entity.getStageStartAt(),

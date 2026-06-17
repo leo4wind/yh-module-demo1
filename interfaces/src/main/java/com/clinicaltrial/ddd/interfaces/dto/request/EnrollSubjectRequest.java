@@ -12,6 +12,9 @@ public class EnrollSubjectRequest {
     private Long userId;
     private String blh;
     private String syxh;
+    private String name;
+    private String gender;
+    private Integer age;
     private List<String> groupSubsetIds;
 
     public Long getProjectId() { return projectId; }
@@ -24,6 +27,12 @@ public class EnrollSubjectRequest {
     public void setBlh(String blh) { this.blh = blh; }
     public String getSyxh() { return syxh; }
     public void setSyxh(String syxh) { this.syxh = syxh; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
     public List<String> getGroupSubsetIds() { return groupSubsetIds; }
     public void setGroupSubsetIds(List<String> groupSubsetIds) { this.groupSubsetIds = groupSubsetIds; }
 }

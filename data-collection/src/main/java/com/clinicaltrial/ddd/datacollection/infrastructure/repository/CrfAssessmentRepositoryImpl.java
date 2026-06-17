@@ -48,6 +48,13 @@ public class CrfAssessmentRepositoryImpl implements CrfAssessmentRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public CrfAssessment getById(CrfAssessmentId id) {
+        return findById(id)
+                .orElseThrow(() -> new AggregateNotFoundException("CrfAssessment", id));
+    }
+
+    @Override
     @Transactional
     public void save(CrfAssessment assessment) {
         CrfAssessmentJpaEntity entity = toJpa(assessment);
@@ -126,10 +133,10 @@ public class CrfAssessmentRepositoryImpl implements CrfAssessmentRepository {
     private CrfAssessment toDomain(CrfAssessmentJpaEntity entity) {
         return CrfAssessment.reconstruct(
                 new CrfAssessmentId(entity.getId()),
-                new SubjectId(entity.getSubjectsUserId()),
-                new CrfTemplateId(entity.getCrfId()),
+                entity.getSubjectsUserId() != null ? new SubjectId(entity.getSubjectsUserId()) : null,
+                entity.getCrfId() != null ? new CrfTemplateId(entity.getCrfId()) : null,
                 entity.getCrfVersionId() != null ? new CrfVersionId(entity.getCrfVersionId()) : null,
-                new SubjectStageId(entity.getSubjectsStageId()),
+                entity.getSubjectsStageId() != null ? new SubjectStageId(entity.getSubjectsStageId()) : null,
                 entity.getStatus(),
                 toDomainCompleteness(entity.getCompleteness()),
                 entity.isAdverseEvent(),

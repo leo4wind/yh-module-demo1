@@ -85,7 +85,8 @@ public class SubjectController {
                 new ProjectId(req.getProjectId()), req.getSiteId(),
                 req.getScreeningDate(),
                 ScreeningInfo.ScreeningResult.valueOf(req.getScreeningResult()),
-                req.getRemarks(), req.getUserId(), req.getBlh(), req.getSyxh());
+                req.getRemarks(), req.getUserId(), req.getBlh(), req.getSyxh(),
+                req.getName(), req.getGender(), req.getAge());
         Subject subject = subjectAppService.screenSubject(cmd);
         return ApiResponse.success(new IdResponse(subject.getId().getValue()));
     }
@@ -94,9 +95,13 @@ public class SubjectController {
     @PostMapping("/api/subjects/{id}/enroll")
     public ApiResponse<IdResponse> enrollSubject(@PathVariable Long id,
                                                   @RequestBody EnrollSubjectRequest req) {
+        if (req.getProjectId() == null) {
+            throw new IllegalArgumentException("projectId must not be null");
+        }
         EnrollSubjectCommand cmd = new EnrollSubjectCommand(
                 new SubjectId(id), new ProjectId(req.getProjectId()),
                 req.getSiteId(), req.getUserId(), req.getBlh(), req.getSyxh(),
+                req.getName(), req.getGender(), req.getAge(),
                 req.getGroupSubsetIds() != null ? req.getGroupSubsetIds()
                         : Collections.<String>emptyList());
         Subject subject = subjectAppService.enrollSubject(cmd);
@@ -109,6 +114,7 @@ public class SubjectController {
         EnrollSubjectCommand cmd = new EnrollSubjectCommand(
                 new ProjectId(req.getProjectId()), req.getSiteId(), req.getUserId(),
                 req.getBlh(), req.getSyxh(),
+                req.getName(), req.getGender(), req.getAge(),
                 req.getGroupSubsetIds() != null ? req.getGroupSubsetIds()
                         : Collections.<String>emptyList());
         Subject subject = subjectAppService.enrollSubject(cmd);
@@ -129,6 +135,9 @@ public class SubjectController {
     @PutMapping("/api/subjects/{id}/status")
     public ApiResponse<IdResponse> changeStatus(@PathVariable Long id,
                                                  @RequestBody ChangeSubjectStatusRequest req) {
+        if (req.getNewStatus() == null) {
+            throw new IllegalArgumentException("newStatus must not be null");
+        }
         ChangeSubjectStatusCommand cmd = new ChangeSubjectStatusCommand(
                 new SubjectId(id), SubjectStatus.valueOf(req.getNewStatus()), req.getReason());
         Subject subject = subjectAppService.changeStatus(cmd);
@@ -145,6 +154,9 @@ public class SubjectController {
         sum.setStatus(s.getStatus() != null ? s.getStatus().name() : null);
         sum.setBlh(s.getBlh());
         sum.setSyxh(s.getSyxh());
+        sum.setName(s.getName());
+        sum.setGender(s.getGender());
+        sum.setAge(s.getAge());
         return sum;
     }
 
@@ -158,6 +170,9 @@ public class SubjectController {
         r.setSiteId(s.getSiteId());
         r.setBlh(s.getBlh());
         r.setSyxh(s.getSyxh());
+        r.setName(s.getName());
+        r.setGender(s.getGender());
+        r.setAge(s.getAge());
         r.setGroupSubsetIds(s.getGroupSubsetIds());
         r.setRemarks(s.getRemarks());
         r.setTrackDownId(s.getTrackDownId());

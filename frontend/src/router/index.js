@@ -9,6 +9,8 @@ const routes = [
   { path: '/assessments/:id', name: 'AssessmentDetail', component: () => import('../views/assessment/AssessmentDetail.vue') },
   { path: '/assessments/:assessmentId/queries', name: 'QueryList', component: () => import('../views/query/QueryList.vue') },
   { path: '/export-tasks/:projectId?', name: 'ExportTaskList', component: () => import('../views/export/ExportTaskList.vue') },
+  { path: '/crf-templates', name: 'CrfTemplateList', component: () => import('../views/crf/CrfTemplateList.vue') },
+  { path: '/crf-templates/:id', name: 'CrfTemplateDetail', component: () => import('../views/crf/CrfTemplateDetail.vue') },
   { path: '/analysis', name: 'AnalysisProject', component: () => import('../views/analysis/AnalysisProject.vue') }
 ]
 

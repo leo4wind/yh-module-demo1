@@ -70,6 +70,9 @@ public class Subject extends AggregateRoot<SubjectId> {
     private Long siteId;
     private String blh;
     private String syxh;
+    private String name;
+    private String gender;
+    private Integer age;
     private List<String> groupSubsetIds;
     private ScreeningInfo screeningInfo;
     private SubjectFallOffReason fallOffReason;
@@ -100,6 +103,9 @@ public class Subject extends AggregateRoot<SubjectId> {
      * @param siteId         the site identity
      * @param blh            病历号 (medical record number); may be null
      * @param syxh           试验序号 (trial sequence number); may be null
+     * @param name           受试者姓名; may be null
+     * @param gender         性别; may be null
+     * @param age            年龄; may be null
      * @param groupSubsetIds group/subset identifiers; may be null (treated as empty)
      * @return a new Subject instance
      * @throws IllegalArgumentException if projectId is null
@@ -109,6 +115,9 @@ public class Subject extends AggregateRoot<SubjectId> {
                                                Long siteId,
                                                String blh,
                                                String syxh,
+                                               String name,
+                                               String gender,
+                                               Integer age,
                                                List<String> groupSubsetIds) {
         if (projectId == null) {
             throw new IllegalArgumentException("projectId must not be null");
@@ -119,10 +128,23 @@ public class Subject extends AggregateRoot<SubjectId> {
         subject.siteId = siteId;
         subject.blh = blh;
         subject.syxh = syxh;
+        subject.name = name;
+        subject.gender = gender;
+        subject.age = age;
         subject.groupSubsetIds = groupSubsetIds != null
                 ? new ArrayList<>(groupSubsetIds)
                 : new ArrayList<String>();
         return subject;
+    }
+
+    public static Subject createForEnrollment(ProjectId projectId,
+                                               Long userId,
+                                               Long siteId,
+                                               String blh,
+                                               String syxh,
+                                               List<String> groupSubsetIds) {
+        return createForEnrollment(projectId, userId, siteId, blh, syxh,
+                null, null, null, groupSubsetIds);
     }
 
     /**
@@ -137,6 +159,9 @@ public class Subject extends AggregateRoot<SubjectId> {
      * @param siteId         the site identity
      * @param blh            病历号
      * @param syxh           试验序号
+     * @param name           受试者姓名
+     * @param gender         性别
+     * @param age            年龄
      * @param groupSubsetIds group/subset identifiers
      * @param screeningInfo  screening evaluation information (may be null)
      * @param fallOffReason  fall-off reason (may be null)
@@ -153,6 +178,9 @@ public class Subject extends AggregateRoot<SubjectId> {
                                        Long siteId,
                                        String blh,
                                        String syxh,
+                                       String name,
+                                       String gender,
+                                       Integer age,
                                        List<String> groupSubsetIds,
                                        ScreeningInfo screeningInfo,
                                        SubjectFallOffReason fallOffReason,
@@ -168,6 +196,9 @@ public class Subject extends AggregateRoot<SubjectId> {
         subject.siteId = siteId;
         subject.blh = blh;
         subject.syxh = syxh;
+        subject.name = name;
+        subject.gender = gender;
+        subject.age = age;
         subject.groupSubsetIds = groupSubsetIds != null
                 ? new ArrayList<>(groupSubsetIds)
                 : new ArrayList<String>();
@@ -177,6 +208,25 @@ public class Subject extends AggregateRoot<SubjectId> {
         subject.trackDownId = trackDownId;
         subject.supervisorId = supervisorId;
         return subject;
+    }
+
+    public static Subject reconstruct(SubjectId id,
+                                       ProjectId projectId,
+                                       SubjectCode code,
+                                       SubjectStatus status,
+                                       Long userId,
+                                       Long siteId,
+                                       String blh,
+                                       String syxh,
+                                       List<String> groupSubsetIds,
+                                       ScreeningInfo screeningInfo,
+                                       SubjectFallOffReason fallOffReason,
+                                       String remarks,
+                                       Long trackDownId,
+                                       Long supervisorId) {
+        return reconstruct(id, projectId, code, status, userId, siteId, blh, syxh,
+                null, null, null, groupSubsetIds, screeningInfo, fallOffReason,
+                remarks, trackDownId, supervisorId);
     }
 
     // ---------------------------------------------------------------
@@ -481,6 +531,18 @@ public class Subject extends AggregateRoot<SubjectId> {
 
     public String getSyxh() {
         return syxh;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public Integer getAge() {
+        return age;
     }
 
     public List<String> getGroupSubsetIds() {

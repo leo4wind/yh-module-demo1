@@ -26,6 +26,9 @@
           </el-descriptions>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0">
+          <el-button type="primary" @click="goSubjects">
+            受试者列表
+          </el-button>
           <el-button v-if="project.status === 'DRAFT'" type="success" @click="handleActivate" :loading="activating">
             激活项目
           </el-button>
@@ -99,7 +102,9 @@
           </div>
           <el-table :data="crfBindings" stripe size="small">
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="crfId" label="CRF ID" width="100" />
+            <el-table-column label="CRF模板" min-width="180">
+              <template #default="{ row }">{{ crfTemplateLabel(row.crfId) }}</template>
+            </el-table-column>
             <el-table-column prop="crfVersionId" label="版本ID" width="100" />
             <el-table-column label="关联阶段" min-width="140">
               <template #default="{ row }">{{ stageName(row.stageId) }}</template>
@@ -115,14 +120,18 @@
 
         <el-tab-pane label="中心人员" name="personnel">
           <div style="margin-bottom:12px">
-            <el-button type="primary" size="small" @click="personnelDialogVisible = true">
+            <el-button type="primary" size="small" @click="openPersonnelDialog">
               <el-icon><Plus /></el-icon>添加人员
             </el-button>
           </div>
           <el-table :data="personnel" stripe size="small">
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="userId" label="用户ID" width="120" />
-            <el-table-column prop="siteId" label="中心ID" width="120" />
+            <el-table-column label="用户" min-width="140">
+              <template #default="{ row }">{{ userOptionLabel(row.userId) }}</template>
+            </el-table-column>
+            <el-table-column label="中心" min-width="140">
+              <template #default="{ row }">{{ siteOptionLabel(row.siteId) }}</template>
+            </el-table-column>
             <el-table-column prop="role" label="角色" width="120">
               <template #default="{ row }">{{ roleLabel[row.role] || row.role }}</template>
             </el-table-column>
@@ -214,8 +223,23 @@
     <!-- Add CRF Binding Dialog -->
     <el-dialog v-model="crfDialogVisible" title="添加CRF绑定" width="480px">
       <el-form :model="crfForm" label-width="100px">
-        <el-form-item label="CRF ID" required>
-          <el-input-number v-model="crfForm.crfId" :min="1" style="width:100%" />
+        <el-form-item label="CRF模板" required>
+          <el-select
+            v-model="selectedCrfTemplateId"
+            filterable
+            remote
+            reserve-keyword
+            :remote-method="searchCrfTemplates"
+            :loading="crfTemplateLoading"
+            placeholder="输入名称或编码搜索"
+            style="width:100%"
+            @change="handleCrfTemplateChange">
+            <el-option
+              v-for="template in crfTemplates"
+              :key="template.id"
+              :label="formatCrfTemplateOption(template)"
+              :value="template.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="关联阶段" required>
           <el-select v-model="crfForm.stageId" style="width:100%">
@@ -240,8 +264,18 @@
       <el-form :model="personnelForm" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="用户ID" required>
-              <el-input-number v-model="personnelForm.userId" :min="1" style="width:100%" />
+            <el-form-item label="用户" required>
+              <el-select
+                v-model="personnelForm.userId"
+                filterable
+                placeholder="请选择用户"
+                style="width:100%">
+                <el-option
+                  v-for="user in personnelOptions.users"
+                  :key="user.id"
+                  :label="formatOption(user)"
+                  :value="String(user.id)" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -257,8 +291,18 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="中心ID" required>
-              <el-input-number v-model="personnelForm.siteId" :min="1" style="width:100%" />
+            <el-form-item label="中心" required>
+              <el-select
+                v-model="personnelForm.siteId"
+                filterable
+                placeholder="请选择中心"
+                style="width:100%">
+                <el-option
+                  v-for="site in personnelOptions.sites"
+                  :key="site.id"
+                  :label="formatOption(site)"
+                  :value="String(site.id)" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -275,7 +319,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
-import { getProject, activateProject, closeProject, addStage, addVisitPlan, bindCrf, assignPersonnel } from '../../api/project'
+import { getProject, activateProject, closeProject, addStage, addVisitPlan, bindCrf, assignPersonnel, getPersonnelOptions } from '../../api/project'
+import { getCrfTemplates } from '../../api/crf'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -309,13 +354,30 @@ const visitForm = ref({ name: '', sourceStageId: null, targetStageId: null, base
 
 const crfDialogVisible = ref(false)
 const crfSubmitting = ref(false)
-const crfForm = ref({ stageId: null, crfId: 1, crfVersionId: 1, userInputEnabled: true })
+const crfTemplateLoading = ref(false)
+const crfTemplates = ref([])
+const selectedCrfTemplateId = ref(null)
+const crfForm = ref({ stageId: null, crfId: null, crfVersionId: null, userInputEnabled: true })
 
 const personnelDialogVisible = ref(false)
 const personnelSubmitting = ref(false)
-const personnelForm = ref({ userId: 1, siteId: 1, role: 'CRC' })
+const personnelForm = ref({ userId: '', siteId: '', role: 'CRC' })
+const personnelOptions = ref({
+  users: [
+    { id: '1', label: '系统用户 1' },
+    { id: '100', label: '研究者 100' },
+    { id: '200', label: '数据管理员 200' }
+  ],
+  sites: [
+    { id: '1', label: '默认中心 1' },
+    { id: '100', label: '研究中心 100' },
+    { id: '200', label: '研究中心 200' }
+  ]
+})
 
-onMounted(() => fetchProject())
+onMounted(async () => {
+  await Promise.all([fetchProject(), fetchCrfTemplates(), fetchPersonnelOptions()])
+})
 
 async function fetchProject() {
   loading.value = true
@@ -326,6 +388,7 @@ async function fetchProject() {
     visitPlans.value = res.visitPlans || res.visitPlanList || []
     crfBindings.value = res.crfBindings || res.crfBindingList || []
     personnel.value = res.sitePersonnel || res.personnel || res.personnelList || []
+    mergePersonnelOptionsFromRows(personnel.value)
   } catch {
     ElMessage.error('加载项目详情失败')
   } finally {
@@ -353,6 +416,10 @@ async function handleClose() {
   } finally {
     closing.value = false
   }
+}
+
+function goSubjects() {
+  router.push(`/projects/${projectId}/subjects`)
 }
 
 async function handleAddStage() {
@@ -391,15 +458,16 @@ async function handleAddVisitPlan() {
 
 async function handleAddCrf() {
   if (!crfForm.value.crfId || !crfForm.value.stageId) {
-    ElMessage.warning('请填写CRF ID并选择关联阶段')
+    ElMessage.warning('请选择CRF模板和关联阶段')
     return
   }
   crfSubmitting.value = true
   try {
-    await bindCrf(projectId, normalizeNumbers(crfForm.value, ['stageId', 'crfId', 'crfVersionId']))
+    await bindCrf(projectId, normalizeNumbers(crfForm.value, ['stageId', 'crfVersionId']))
     ElMessage.success('CRF绑定成功')
     crfDialogVisible.value = false
-    crfForm.value = { stageId: null, crfId: 1, crfVersionId: 1, userInputEnabled: true }
+    selectedCrfTemplateId.value = null
+    crfForm.value = { stageId: null, crfId: null, crfVersionId: null, userInputEnabled: true }
     await fetchProject()
   } finally {
     crfSubmitting.value = false
@@ -408,7 +476,7 @@ async function handleAddCrf() {
 
 async function handleAddPersonnel() {
   if (!personnelForm.value.userId || !personnelForm.value.siteId || !personnelForm.value.role) {
-    ElMessage.warning('请填写用户ID、中心ID和角色')
+    ElMessage.warning('请选择用户、中心和角色')
     return
   }
   personnelSubmitting.value = true
@@ -416,8 +484,8 @@ async function handleAddPersonnel() {
     await assignPersonnel(projectId, normalizeNumbers(personnelForm.value, ['userId', 'siteId']))
     ElMessage.success('人员添加成功')
     personnelDialogVisible.value = false
-    personnelForm.value = { userId: 1, siteId: 1, role: 'CRC' }
-    await fetchProject()
+    personnelForm.value = { userId: '', siteId: '', role: 'CRC' }
+    await Promise.all([fetchProject(), fetchPersonnelOptions()])
   } finally {
     personnelSubmitting.value = false
   }
@@ -443,6 +511,81 @@ function normalizeNumbers(payload, keys) {
 function stageName(id) {
   const stage = stages.value.find(item => Number(item.id) === Number(id))
   return stage ? stage.name : (id ? `阶段 ${id}` : '-')
+}
+
+async function fetchCrfTemplates(keyword = '') {
+  crfTemplateLoading.value = true
+  try {
+    const res = await getCrfTemplates({ page: 0, size: 50, keyword })
+    crfTemplates.value = res.content || res.records || []
+  } finally {
+    crfTemplateLoading.value = false
+  }
+}
+
+function searchCrfTemplates(keyword) {
+  fetchCrfTemplates(keyword)
+}
+
+function handleCrfTemplateChange(templateId) {
+  const template = crfTemplates.value.find(item => String(item.id) === String(templateId))
+  crfForm.value.crfId = templateId
+  crfForm.value.crfVersionId = template?.defaultVersionId || 1
+}
+
+function formatCrfTemplateOption(template) {
+  const code = template.code ? ` / ${template.code}` : ''
+  const status = template.status ? ` / ${template.status}` : ''
+  return `${template.name || `CRF ${template.id}`}${code}${status}`
+}
+
+function crfTemplateLabel(id) {
+  const template = crfTemplates.value.find(item => String(item.id) === String(id))
+  return template ? formatCrfTemplateOption(template) : (id ? `CRF ${id}` : '-')
+}
+
+async function fetchPersonnelOptions() {
+  const res = await getPersonnelOptions(projectId)
+  personnelOptions.value = {
+    users: (res.users || []).map(item => ({ ...item, id: String(item.id) })),
+    sites: (res.sites || []).map(item => ({ ...item, id: String(item.id) }))
+  }
+}
+
+async function openPersonnelDialog() {
+  personnelDialogVisible.value = true
+  await fetchPersonnelOptions()
+}
+
+function mergePersonnelOptionsFromRows(rows) {
+  rows.forEach(row => {
+    addPersonnelOption('users', row.userId, `用户 ${row.userId}`)
+    addPersonnelOption('sites', row.siteId, `中心 ${row.siteId}`)
+  })
+}
+
+function addPersonnelOption(group, id, label) {
+  if (id === null || id === undefined || id === '') return
+  const values = personnelOptions.value[group] || []
+  const stringId = String(id)
+  if (!values.some(item => String(item.id) === stringId)) {
+    values.push({ id: stringId, label })
+  }
+  personnelOptions.value[group] = values
+}
+
+function formatOption(option) {
+  return option?.label ? `${option.label} / ${option.id}` : String(option?.id || '')
+}
+
+function userOptionLabel(id) {
+  const option = personnelOptions.value.users.find(item => String(item.id) === String(id))
+  return option ? formatOption(option) : (id ? `用户 ${id}` : '-')
+}
+
+function siteOptionLabel(id) {
+  const option = personnelOptions.value.sites.find(item => String(item.id) === String(id))
+  return option ? formatOption(option) : (id ? `中心 ${id}` : '-')
 }
 
 function formatBaseline(row) {
